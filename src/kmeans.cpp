@@ -19,6 +19,8 @@ arma::uvec MyKmeans_c(const arma::mat& X, int K,
     arma::uvec Y(n); // to store cluster assignments
     
     // Initialize any additional parameters if needed
+    // Precompute X squared since doesnt need to be repeated
+    arma::vec x2 = arma::sum(arma::square(X), 1);
     
     
     // Implement K-means algorithm. 
@@ -27,14 +29,21 @@ arma::uvec MyKmeans_c(const arma::mat& X, int K,
     // (ii) the maximal number of iterations was reached, or
     // (iii) one of the clusters has disappeared after one of the iterations (in which case the error message is returned)
     
-    // Precompute X squared since doesnt need to be repeated
     
     // For loop with kmeans algorithm
     for (int iter = 0; iter < numIter; iter++) {
       // Compute distances from each row in X and M, store it in a matrix nxK matrix D2
+      arma::vec m2 = arma::sum(arma::square(M), 1);
+      arma::mat D2 = arma::repmat(x2, 1, K) + arma::repmat(m2.t(), n, 1) - 2 * (X * M.t());
       
       // Assign value to Y by finding at which column the minimum is at in D
       // then check number of unique values in Y is K
+      Y = arma::index_min(D2, 1);
+      arma::uvec counts(K, arma::fill::zeros);
+      for (unsigned int i = 0; i < n; i++) counts[Y[i]]++;
+      if (arma::any(counts == 0))
+        stop("Empty Cluster Detected.");
+      
       
       // Compute new centroid values mu, check that it changed, and store into M
 
