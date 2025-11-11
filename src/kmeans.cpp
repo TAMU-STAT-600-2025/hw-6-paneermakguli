@@ -21,6 +21,8 @@ arma::uvec MyKmeans_c(const arma::mat& X, int K,
     // Initialize any additional parameters if needed
     // Precompute X squared since doesnt need to be repeated
     arma::vec x2 = arma::sum(arma::square(X), 1);
+    // Add Current M that can be modified
+    arma::mat curM = M
     
     
     // Implement K-means algorithm. 
@@ -33,34 +35,34 @@ arma::uvec MyKmeans_c(const arma::mat& X, int K,
     // For loop with kmeans algorithm
     for (int iter = 0; iter < numIter; iter++) {
       // Compute distances from each row in X and M, store it in a matrix nxK matrix D2
-      arma::vec m2 = arma::sum(arma::square(M), 1);
-      arma::mat D2 = arma::repmat(x2, 1, K) + arma::repmat(m2.t(), n, 1) - 2 * (X * M.t());
+      arma::vec m2 = arma::sum(arma::square(curM), 1);
+      arma::mat D2 = arma::repmat(x2, 1, K) + arma::repmat(m2.t(), n, 1) - 2 * (X * curM.t());
       
       // Assign value to Y by finding at which column the minimum is at in D
       // then check number of unique values in Y is K
-      Y = arma::index_min(D2, 1);
+      Y = arma::index_min(D2, 1) + 1;
       arma::uvec counts(K, arma::fill::zeros);
-      for (unsigned int i = 0; i < n; i++) counts[Y[i]]++;
+      for (unsigned int i = 0; i < n; i++) counts[Y[i] - 1]++;
       if (arma::any(counts == 0))
-        stop("Empty Cluster Detected.");
+        Rcpp::stop("Empty Cluster Detected.");
       
       
       // Compute new centroid values mu, check that it changed, and store into M
       arma::mat newM(K, p, arma::fill::zeros);
       for (unsigned int i = 0; i < n; i++) {
-        newM.row(Y[i]) += X.row(i);
+        newM.row(Y[i] - 1) += X.row(i);
       }
       for (int k = 0; k < K; k++) {
         newM.row(k) /= counts[k];
       }
       
       // Check convergence
-      if (arma::all(arma::vectorise(newM == M))) {
+      if (arma::all(arma::vectorise(newM == curM))) {
         Rcpp::Rcout << "MyKmeans finished in " << (iter + 1) << " iterations." << std::endl;
         break;
       }
       
-      M = newM;
+      curM = newM;
     }
     
     // Returns the vector of cluster assignments
