@@ -22,7 +22,7 @@ arma::uvec MyKmeans_c(const arma::mat& X, int K,
     // Precompute X squared since doesnt need to be repeated
     arma::vec x2 = arma::sum(arma::square(X), 1);
     // Add Current M that can be modified
-    arma::mat curM = M
+    arma::mat curM = M;
     
     
     // Implement K-means algorithm. 
