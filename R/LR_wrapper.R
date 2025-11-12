@@ -1,17 +1,44 @@
-#' Title
+#' Multi-class Logistic Regression using Newton's Method
 #'
-#' @param X 
-#' @param y 
-#' @param numIter 
-#' @param eta 
-#' @param lambda 
-#' @param beta_init 
+#' Implements multi-class logistic regression with ridge regularization using
+#' damped Newton's method. The algorithm iteratively updates coefficients for
+#' each class using Newton's method with a damping parameter.
 #'
-#' @return
+#' @param X n x p training data matrix. The first column must be all 1s to account for the intercept.
+#' @param y n-length vector of class labels, from 0 to K-1, where K is the number of classes.
+#' @param beta_init Optional p x K matrix of initial beta values. If NULL (default), initialized to a matrix of zeros.
+#' @param numIter Number of fixed iterations of the algorithm. Default is 50.
+#' @param eta Learning rate (damping parameter) for Newton's method. Must be positive. Default is 0.1.
+#' @param lambda Ridge regularization parameter. Must be non-negative. Default is 1.
+#'
+#' @return A list containing:
+#'   \item{beta}{p x K matrix of estimated beta coefficients after numIter iterations}
+#'   \item{objective}{(numIter + 1) length vector of objective function values at each iteration (including starting value)}
+#'
 #' @export
 #'
 #' @examples
-#' # Give example
+#' # Generate simple simulated data with 3 classes
+#' set.seed(123)
+#' n <- 100
+#' p <- 5
+#' K <- 3
+#' 
+#' # Create design matrix with intercept column
+#' X <- cbind(1, matrix(rnorm(n * (p-1)), nrow = n))
+#' 
+#' # Generate class labels
+#' y <- sample(0:(K-1), n, replace = TRUE)
+#' 
+#' # Run multi-class logistic regression
+#' result <- LRMultiClass(X, y, numIter = 20, eta = 0.1, lambda = 0.1)
+#' 
+#' # Check results
+#' dim(result$beta)  # Should be p x K
+#' length(result$objective)  # Should be numIter + 1
+#' 
+#' # Plot objective function convergence
+#' plot(result$objective, type = "l", xlab = "Iteration", ylab = "Objective")
 LRMultiClass <- function(X, y, beta_init = NULL, numIter = 50, eta = 0.1, lambda = 1){
   
   # Compatibility checks from HW3 and initialization of beta_init
@@ -62,6 +89,6 @@ LRMultiClass <- function(X, y, beta_init = NULL, numIter = 50, eta = 0.1, lambda
   # Call C++ LRMultiClass_c function to implement the algorithm
   out = LRMultiClass_c(X, y_int, beta_init, numIter, eta, lambda)
   
-  # Return the class assignments
+  # Return the beta matrix and objective values
   return(out)
 }
