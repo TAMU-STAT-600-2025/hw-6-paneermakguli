@@ -74,11 +74,10 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
         return -log_likelihood + ridge_penalty;
     };
     
-    // Helper function to solve Hessian using Cholesky decomposition
-    auto solve_hessian = [](const arma::mat& X, const arma::vec& W_diag, 
-                            double lambda) -> arma::mat {
+    // Helper function to solve Hessian system directly (faster than computing inverse)
+    auto solve_hessian_system = [](const arma::mat& X, const arma::vec& W_diag, 
+                                    const arma::vec& gradient, double lambda) -> arma::vec {
         // Compute X^T W_k X efficiently (W_k is diagonal)
-        // Equivalent to crossprod(X, W_diag * X) in R
         // W_diag * X means multiply each row of X by corresponding W_diag element
         int n = X.n_rows;
         arma::mat WX = X;
@@ -91,21 +90,21 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
         // Add small regularization for numerical stability
         XTWX.diag() += 1e-12;
         
-        // Use Cholesky decomposition for speed
+        // Solve linear system directly using Cholesky (much faster than computing inverse)
+        arma::vec solution;
         arma::mat U;
         bool success = arma::chol(U, XTWX, "upper");
-        arma::mat hessian_inv;
         if (success) {
-            // Compute (U^T U)^{-1} = U^{-1} (U^T)^{-1}
-            arma::mat U_inv = arma::inv(arma::trimatu(U));
-            hessian_inv = U_inv * U_inv.t();
+            // Solve U^T * y = gradient, then U * solution = y
+            arma::vec y = arma::solve(arma::trimatu(U.t()), gradient);
+            solution = arma::solve(arma::trimatu(U), y);
         } else {
             // Fall back to regular solve with additional regularization
             XTWX.diag() += 1e-8;
-            hessian_inv = arma::inv_sympd(XTWX);
+            solution = arma::solve(XTWX, gradient, arma::solve_opts::likely_sympd);
         }
         
-        return hessian_inv;
+        return solution;
     };
     
     // Calculate initial objective value
@@ -126,11 +125,11 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
             arma::vec P_diff = P.col(k) - indicator.col(k);
             arma::vec gradient = X.t() * P_diff + lambda * beta.col(k);
             
-            // Solve (X^T W_k X + lambda I)^{-1}
-            arma::mat hessian_inv = solve_hessian(X, W_diag, lambda);
+            // Solve linear system directly (faster than computing inverse)
+            arma::vec hessian_solve = solve_hessian_system(X, W_diag, gradient, lambda);
             
             // Damped Newton's update: beta_k = beta_k - eta * H^{-1} * gradient
-            beta.col(k) = beta.col(k) - eta * (hessian_inv * gradient);
+            beta.col(k) = beta.col(k) - eta * hessian_solve;
         }
         
         // Calculate updated objective function
