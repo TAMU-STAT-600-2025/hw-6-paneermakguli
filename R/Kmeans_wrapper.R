@@ -1,15 +1,37 @@
-#' Title
+#' K-Means Clustering (Rccp Ver.)
+#' 
+#' Performs K-means clustering on a numeric matrix. 
+#' It validates input, initializes centroids (if not already given),
+#' and calls a C++ implementation. 
 #'
-#' @param X 
-#' @param K 
-#' @param M 
-#' @param numIter 
+#' @param X A numeric matrix (or dataframe) of size n x p, where n is the 
+#'  number of observations and p the number of features. 
+#' @param K Integer. Represents the number of clusters to form, 
+#'  must be positive and less than n.
+#' @param M (Optional) numeric matrix of size K x p. Specifies initial cluster centroids.
+#'  If NULL, centroids are initialized by randomly selecting K rows from X.
+#' @param numIter Integer. The maximum number of iterations to run (default = 100). 
 #'
-#' @return Explain return
+#' @return An integer vector of length n. Gives the cluster assignment for each observation.
 #' @export
 #'
 #' @examples
-#' # Give example
+#' set.seed(123)
+#' # Create a simple 2D dataset with 3 clusters
+#' X <- rbind(
+#'   matrix(rnorm(100, mean = 0, sd = 0.5), ncol = 2),
+#'   matrix(rnorm(100, mean = 3, sd = 0.5), ncol = 2),
+#'   matrix(rnorm(100, mean = 6, sd = 0.5), ncol = 2)
+#' )
+#'
+#' # Run custom K-means with random initialization
+#' Y <- MyKmeans(X, K = 3)
+#' table(Y)
+#'
+#' # Use custom initialization
+#' init_M <- X[sample(1:nrow(X), 3), ]
+#' Y2 <- MyKmeans(X, K = 3, M = init_M)
+#' table(Y2)
 MyKmeans <- function(X, K, M = NULL, numIter = 100){
   # Check that X is nxp matrix, assign values to n and p
   if (is.data.frame(X)) X <- data.matrix(X)
