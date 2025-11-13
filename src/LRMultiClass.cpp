@@ -110,7 +110,8 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
     };
     
     // Calculate initial objective value
-    objective(0) = compute_objective(X, y, beta, lambda);
+    arma::mat P = softmax(X, beta);
+    objective(0) = compute_objective(X, y, beta, P, lambda);
     
     // Newton's method cycle - implement the update EXACTLY numIter iterations
     for (int iter = 0; iter < numIter; iter++) {

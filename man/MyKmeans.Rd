@@ -2,25 +2,45 @@
 % Please edit documentation in R/Kmeans_wrapper.R
 \name{MyKmeans}
 \alias{MyKmeans}
-\title{Title}
+\title{K-Means Clustering (Rccp Ver.)}
 \usage{
 MyKmeans(X, K, M = NULL, numIter = 100)
 }
 \arguments{
-\item{X}{}
+\item{X}{A numeric matrix (or dataframe) of size n x p, where n is the 
+number of observations and p the number of features.}
 
-\item{K}{}
+\item{K}{Integer. Represents the number of clusters to form, 
+must be positive and less than n.}
 
-\item{M}{}
+\item{M}{(Optional) numeric matrix of size K x p. Specifies initial cluster centroids.
+If NULL, centroids are initialized by randomly selecting K rows from X.}
 
-\item{numIter}{}
+\item{numIter}{Integer. The maximum number of iterations to run (default = 100).}
 }
 \value{
-Explain return
+An integer vector of length n. Gives the cluster assignment for each observation.
 }
 \description{
-Title
+Performs K-means clustering on a numeric matrix. 
+It validates input, initializes centroids (if not already given),
+and calls a C++ implementation.
 }
 \examples{
-# Give example
+set.seed(123)
+# Create a simple 2D dataset with 3 clusters
+X <- rbind(
+  matrix(rnorm(100, mean = 0, sd = 0.5), ncol = 2),
+  matrix(rnorm(100, mean = 3, sd = 0.5), ncol = 2),
+  matrix(rnorm(100, mean = 6, sd = 0.5), ncol = 2)
+)
+
+# Run custom K-means with random initialization
+Y <- MyKmeans(X, K = 3)
+table(Y)
+
+# Use custom initialization
+init_M <- X[sample(1:nrow(X), 3), ]
+Y2 <- MyKmeans(X, K = 3, M = init_M)
+table(Y2)
 }
