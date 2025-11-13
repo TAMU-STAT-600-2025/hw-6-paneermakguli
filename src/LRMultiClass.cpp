@@ -19,7 +19,7 @@
 Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::mat& beta_init,
                                int numIter = 50, double eta = 0.1, double lambda = 1){
     // All input is assumed to be correct
-    
+     
     // Initialize some parameters
     int K = max(y) + 1; // number of classes
     int p = X.n_cols;
@@ -59,10 +59,10 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
     
     // Helper function to compute objective (negative log-likelihood + ridge penalty)
     auto compute_objective = [&softmax](const arma::mat& X, const arma::uvec& y, 
-                                        const arma::mat& beta, double lambda) -> double {
+                                        const arma::mat& beta, const arma::mat& P,
+                                        double lambda) -> double {
         int n = X.n_rows;
-        arma::mat P = softmax(X, beta);
-        
+
         // Log-likelihood: sum of log probabilities for true classes
         double log_likelihood = 0.0;
         for (int i = 0; i < n; i++) {
@@ -134,7 +134,7 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
         }
         
         // Calculate updated objective function
-        objective(iter + 1) = compute_objective(X, y, beta, lambda);
+        objective(iter + 1) = compute_objective(X, y, beta, P, lambda);
     }
     
     // Create named list with betas and objective values
