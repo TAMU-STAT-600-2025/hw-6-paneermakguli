@@ -18,58 +18,45 @@ arma::uvec MyKmeans_c(const arma::mat& X, int K,
     int p = X.n_cols;
     arma::uvec Y(n); // to store cluster assignments
     
-    // Precompute squared norms for X (constant across iterations)
-    // This avoids recomputing ||x_i||^2 in each iteration
+    // Precompute X squared since it doesn't need to be repeated across iterations
     arma::vec x2 = arma::sum(arma::square(X), 1);
-    
     // Working copy of centroids (will be updated each iteration)
     arma::mat curM = M;
     
-    // K-means algorithm iteration
+    // Implement K-means algorithm
     // Stops when: (i) centroids converge, (ii) max iterations reached, or (iii) empty cluster detected
     for (int iter = 0; iter < numIter; iter++) {
-      // Compute squared norms for current centroids
+      // Compute squared distances from each row in X to each centroid in M, store in n×K matrix D2
       arma::vec m2 = arma::sum(arma::square(curM), 1);
-      
-      // Compute squared distances: D2[i,j] = ||x_i||^2 + ||m_j||^2 - 2*x_i*m_j^T
-      // Optimized: avoid repmat by using broadcasting with each_col/each_row
-      arma::mat D2(n, K);
-      for (int j = 0; j < K; j++) {
-        D2.col(j) = x2 + m2(j) - 2 * (X * curM.row(j).t());
-      }
+      arma::mat D2 = arma::repmat(x2, 1, K) + arma::repmat(m2.t(), n, 1) - 2 * (X * curM.t());
       
       // Assign each point to nearest centroid (1-indexed for R compatibility)
       Y = arma::index_min(D2, 1) + 1;
       
       // Count points in each cluster and check for empty clusters
       arma::uvec counts(K, arma::fill::zeros);
-      for (int i = 0; i < n; i++) {
-        counts[Y[i] - 1]++;
-      }
-      if (arma::any(counts == 0)) {
+      for (unsigned int i = 0; i < n; i++) counts[Y[i] - 1]++;
+      if (arma::any(counts == 0))
         Rcpp::stop("Empty Cluster Detected.");
-      }
       
-      // Compute new centroids by averaging points in each cluster
+      // Compute new centroid values by averaging points in each cluster
       arma::mat newM(K, p, arma::fill::zeros);
-      for (int i = 0; i < n; i++) {
+      for (unsigned int i = 0; i < n; i++) {
         newM.row(Y[i] - 1) += X.row(i);
       }
       for (int k = 0; k < K; k++) {
         newM.row(k) /= counts[k];
       }
       
-      // Check convergence: centroids haven't changed (exact equality)
-      // More efficient than vectorise: use all() on matrix comparison directly
-      if (arma::all(arma::all(newM == curM))) {
+      // Check convergence: centroids haven't changed
+      if (arma::all(arma::vectorise(newM == curM))) {
         break;
       }
       
-      // Update centroids for next iteration
       curM = newM;
     }
     
-    // Return cluster assignments (1-indexed)
-    return Y;
+    // Return cluster assignments
+    return(Y);
 }
 
