@@ -13,31 +13,40 @@ arma::uvec MyKmeans_c(const arma::mat& X, int K,
                             const arma::mat& M, int numIter = 100){
     // All input is assumed to be correct
     
-    // Extract dimensions
+    // Initialize some parameters
     int n = X.n_rows;
     int p = X.n_cols;
     arma::uvec Y(n); // to store cluster assignments
     
+    // Initialize any additional parameters if needed
     // Precompute X squared since it doesn't need to be repeated across iterations
     arma::vec x2 = arma::sum(arma::square(X), 1);
-    // Working copy of centroids (will be updated each iteration)
+    // Current M that can be modified (working copy of centroids)
     arma::mat curM = M;
     
-    // Implement K-means algorithm
-    // Stops when: (i) centroids converge, (ii) max iterations reached, or (iii) empty cluster detected
+    
+    // Implement K-means algorithm. 
+    // It should stop when either 
+    // (i) the centroids don't change from one iteration to the next (exactly the same), or
+    // (ii) the maximal number of iterations was reached, or
+    // (iii) one of the clusters has disappeared after one of the iterations (in which case the error message is returned)
+    
+    
+    // For loop with kmeans algorithm
     for (int iter = 0; iter < numIter; iter++) {
-      // Compute squared distances from each row in X to each centroid in M, store in n×K matrix D2
+      // Compute distances from each row in X and M, store it in an n×K matrix D2
       arma::vec m2 = arma::sum(arma::square(curM), 1);
       arma::mat D2 = arma::repmat(x2, 1, K) + arma::repmat(m2.t(), n, 1) - 2 * (X * curM.t());
       
-      // Assign each point to nearest centroid (1-indexed for R compatibility)
+      // Assign value to Y by finding at which column the minimum is at in D2
+      // then check number of unique values in Y is K
       Y = arma::index_min(D2, 1) + 1;
-      
       // Count points in each cluster and check for empty clusters
       arma::uvec counts(K, arma::fill::zeros);
       for (unsigned int i = 0; i < n; i++) counts[Y[i] - 1]++;
       if (arma::any(counts == 0))
         Rcpp::stop("Empty Cluster Detected.");
+      
       
       // Compute new centroid values by averaging points in each cluster
       arma::mat newM(K, p, arma::fill::zeros);
@@ -56,7 +65,6 @@ arma::uvec MyKmeans_c(const arma::mat& X, int K,
       curM = newM;
     }
     
-    // Return cluster assignments
+    // Return the vector of cluster assignments
     return(Y);
 }
-
