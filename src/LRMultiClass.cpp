@@ -111,16 +111,22 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
     arma::mat P = softmax(X, beta);
     objective(0) = compute_objective(X, y, beta, P, lambda);
     
+    // Compute Xᵀ * indicator once (do this outside loop ideally)
+    arma::mat XTI = X.t() * indicator;
+    
     // Newton's method cycle - implement the update EXACTLY numIter iterations
     for (int iter = 0; iter < numIter; iter++) {
+        // Precompute shared products: XᵀP and Xᵀ(indicator)
+        arma::mat XTP = X.t() * P;       
+        
+        
         // Update each class k using Damped Newton's method
         for (int k = 0; k < K; k++) {
             // Compute diagonal elements of W_k matrix
             arma::vec W_diag = P.col(k) % (1.0 - P.col(k));
             
             // Compute gradient: X^T (P_k - indicator_k) + lambda * beta_k
-            arma::vec P_diff = P.col(k) - indicator.col(k);
-            arma::vec gradient = X.t() * P_diff + lambda * beta.col(k);
+            arma::vec gradient = (XTP.col(k) - XTI.col(k)) + lambda * beta.col(k);
             
             // Solve linear system directly (faster than computing inverse)
             arma::vec hessian_solve = solve_hessian_system(X, W_diag, gradient, lambda);
