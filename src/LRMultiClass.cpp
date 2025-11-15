@@ -113,9 +113,6 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
     
     // Newton's method cycle - implement the update EXACTLY numIter iterations
     for (int iter = 0; iter < numIter; iter++) {
-        // Compute class probabilities for all samples
-        arma::mat P = softmax(X, beta);
-        
         // Update each class k using Damped Newton's method
         for (int k = 0; k < K; k++) {
             // Compute diagonal elements of W_k matrix
@@ -133,6 +130,7 @@ Rcpp::List LRMultiClass_c(const arma::mat& X, const arma::uvec& y, const arma::m
         }
         
         // Calculate updated objective function
+        P = softmax(X, beta);
         objective(iter + 1) = compute_objective(X, y, beta, P, lambda);
     }
     

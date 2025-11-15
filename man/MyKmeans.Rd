@@ -2,7 +2,7 @@
 % Please edit documentation in R/Kmeans_wrapper.R
 \name{MyKmeans}
 \alias{MyKmeans}
-\title{K-Means Clustering (Rccp Ver.)}
+\title{K-Means Clustering (Rcpp Ver.)}
 \usage{
 MyKmeans(X, K, M = NULL, numIter = 100)
 }
